@@ -6,9 +6,16 @@ use std::hash::{Hash, Hasher};
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct DataJson {
     pub state_update_size: u64,
+    pub blocks_info: Vec<BlockInfo>,
     pub state_update: Vec<ContractUpdate>,
     pub class_declaration_size: u64,
     pub class_declaration: Vec<ClassDeclaration>,
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
+pub struct BlockInfo {
+    pub block_num: BigUint,
+    pub block_hash: BigUint
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]

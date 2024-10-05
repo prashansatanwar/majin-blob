@@ -1,6 +1,6 @@
 use std::fs;
 
-use crate::state_diffs::{ClassDeclaration, ContractUpdate, DataJson, StorageUpdate};
+use crate::state_diffs::{ClassDeclaration, ContractUpdate, DataJson, StorageUpdate, BlockInfo};
 use majin_blob_eip_4844::BLOB_LEN;
 use num_bigint::BigUint;
 use num_traits::{Num, ToPrimitive, Zero};
@@ -15,7 +15,27 @@ pub fn parse_state_diffs(data: &[BigUint]) -> DataJson {
     let mut updates = Vec::new();
     let mut i = 0;
     let contract_updated_num = data[i].to_usize().unwrap();
-    i += 5;
+
+    i += 2; 
+
+    let blocks_count = data[i].to_usize().unwrap();
+
+    let mut blocks_info = Vec::new();
+
+    for _ in 0..blocks_count {
+        let block_num = data[i].clone();
+        let block_hash = data[i + 1].clone();
+
+        blocks_info.push(BlockInfo{
+            block_num,
+            block_hash
+        });
+
+        i+=2;
+    }
+
+    i+=1;
+
     // iterate only on len-1 because (len-1)th element contains the length
     // of declared classes.
     for _ in 0..contract_updated_num - 1 {
@@ -94,6 +114,7 @@ pub fn parse_state_diffs(data: &[BigUint]) -> DataJson {
 
     let final_result = DataJson {
         state_update_size: (contract_updated_num - 1).to_u64().unwrap(),
+        blocks_info,
         state_update: updates,
         class_declaration_size: declared_classes_len.to_u64().unwrap(),
         class_declaration: class_declaration_updates,
@@ -208,6 +229,7 @@ mod tests {
             "2", "1", "1", "1", "1", "1234", "1", "12", "34", "1", "56", "78"
         ]),  DataJson {
             state_update_size: 1, 
+            blocks_info: vec![BlockInfo{block_num: BigUint::from(1u64), block_hash:BigUint::from(1u64)}],
             state_update: vec![ContractUpdate {address: BigUint::from(1234u64), nonce: 0, number_of_storage_updates: 1, new_class_hash: None, storage_updates: vec![StorageUpdate{key: BigUint::from(12u64), value: BigUint::from(34u64)}]}],
             class_declaration_size: 1, 
             class_declaration: vec![ClassDeclaration {class_hash:BigUint::from(56u64),compiled_class_hash:BigUint::from(78u64)}]
@@ -219,6 +241,7 @@ mod tests {
             "2", "1", "1", "1", "1", "1234", "1", "12", "34", "0"
         ]),  DataJson {
             state_update_size: 1, 
+            blocks_info: vec![BlockInfo{block_num: BigUint::from(1u64), block_hash:BigUint::from(1u64)}],
             state_update: vec![ContractUpdate {address: BigUint::from(1234u64), nonce: 0, number_of_storage_updates: 1, new_class_hash: None, storage_updates: vec![StorageUpdate{key: BigUint::from(12u64), value: BigUint::from(34u64)}]}],
             class_declaration_size: 0, 
             class_declaration: vec![]
@@ -230,6 +253,7 @@ mod tests {
             "2", "1", "1", "1", "1", "1234", "340282366920938463481821351505477763072", "5432", "0"
         ]),  DataJson {
             state_update_size: 1, 
+            blocks_info: vec![BlockInfo{block_num: BigUint::from(1u64), block_hash:BigUint::from(1u64)}],
             state_update: vec![ContractUpdate {address: BigUint::from(1234u64), nonce: 1, number_of_storage_updates: 0, new_class_hash: Some(BigUint::from(5432u64)), storage_updates: vec![]}],
             class_declaration_size: 0, 
             class_declaration: vec![]
@@ -241,6 +265,7 @@ mod tests {
             "2", "1", "1", "1", "1", "1234", "340282366920938568203987457954602287105", "5432", "12", "34", "0"
         ]),  DataJson {
             state_update_size: 1, 
+            blocks_info: vec![BlockInfo{block_num: BigUint::from(1u64), block_hash:BigUint::from(1u64)}],
             state_update: vec![ContractUpdate {address: BigUint::from(1234u64), nonce: 5678, number_of_storage_updates: 1, new_class_hash: Some(BigUint::from(5432u64)), storage_updates: vec![StorageUpdate{key: BigUint::from(12u64), value: BigUint::from(34u64)}]}],
             class_declaration_size: 0, 
             class_declaration: vec![]
@@ -252,6 +277,7 @@ mod tests {
             "2", "1", "1", "1", "1", "1234", "340282366920938568203987457954602287106", "5432", "12", "34", "56", "78", "0"
         ]),  DataJson {
             state_update_size: 1, 
+            blocks_info: vec![BlockInfo{block_num: BigUint::from(1u64), block_hash:BigUint::from(1u64)}],
             state_update: vec![ContractUpdate {address: BigUint::from(1234u64), nonce: 5678, number_of_storage_updates: 2, new_class_hash: Some(BigUint::from(5432u64)), storage_updates: vec![StorageUpdate{key: BigUint::from(12u64), value: BigUint::from(34u64)}, StorageUpdate{key: BigUint::from(56u64), value: BigUint::from(78u64)}]}],
             class_declaration_size: 0, 
             class_declaration: vec![]
@@ -263,6 +289,7 @@ mod tests {
             "1", "1", "1", "1", "1", "0"
         ]),  DataJson {
             state_update_size: 0, 
+            blocks_info: vec![BlockInfo{block_num: BigUint::from(1u64), block_hash:BigUint::from(1u64)}],
             state_update: vec![],
             class_declaration_size: 0, 
             class_declaration: vec![]
@@ -274,6 +301,7 @@ mod tests {
             "1", "1", "1", "1", "1", "2", "34","12", "23", "56"
         ]),  DataJson {
             state_update_size: 0, 
+            blocks_info: vec![BlockInfo{block_num: BigUint::from(1u64), block_hash:BigUint::from(1u64)}],
             state_update: vec![],
             class_declaration_size: 2, 
             class_declaration: vec![ClassDeclaration {class_hash:BigUint::from(34u64),compiled_class_hash:BigUint::from(12u64)}, ClassDeclaration {class_hash:BigUint::from(23u64),compiled_class_hash:BigUint::from(56u64)}]
